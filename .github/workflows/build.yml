@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '**.zip'
+      - '*.zip'
       - '.github/workflows/build.yml'
 
 permissions:
@@ -16,22 +16,26 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Find and extract project ZIP
         shell: bash
         run: |
-          ZIP_FILE="$(find . -maxdepth 1 -type f -name '*.zip' -printf '%T@ %p\\n' | sort -nr | head -n1 | cut -d' ' -f2-)"
+          ZIP_FILE="$(find . -maxdepth 1 -type f -iname '*.zip' -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)"
           if [ -z "$ZIP_FILE" ]; then
-            echo "Nenhum ZIP encontrado na raiz do repositório."
+            echo "Nenhum arquivo ZIP encontrado na raiz do repositório."
+            echo "Arquivos encontrados na raiz:"
+            ls -la
             exit 1
           fi
+
+          echo "ZIP encontrado: $ZIP_FILE"
           mkdir -p proj
           unzip -q "$ZIP_FILE" -d proj
+
           if [ ! -f proj/settings.gradle.kts ]; then
-            echo "O ZIP precisa conter settings.gradle.kts na raiz interna."
-            find proj -maxdepth 3 -type f | head -50
+            echo "Não encontrei settings.gradle.kts diretamente dentro da pasta extraída."
+            echo "Estrutura do ZIP:"
+            find proj -maxdepth 4 -type f | head -80
             exit 1
           fi
 
